@@ -36,7 +36,7 @@ venv\Scripts\pip install moviepy Pillow --disable-pip-version-check --quiet
 :: 4. Run the Python application
 echo [INFO] Starting the Video Editor...
 echo.
-venv\Scripts\python video_clipper.py
+venv\Scripts\python visual_video_editor.py
 
 :: 5. Keep the window open ONLY if the app crashes so the user can read the error
 if %errorlevel% neq 0 (
