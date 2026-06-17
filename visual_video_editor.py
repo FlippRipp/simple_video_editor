@@ -1245,8 +1245,8 @@ class VisualVideoEditor:
             return "Mac GPU (VideoToolbox)"
         elif system == "windows":
             try:
-                # Query Windows for graphics card names
-                output = subprocess.check_output("wmic path win32_VideoController get name", shell=True, text=True).lower()
+                # Query Windows for graphics card names using PowerShell (wmic is deprecated in Windows 11)
+                output = subprocess.check_output('powershell -command "Get-CimInstance -ClassName Win32_VideoController | Select-Object -ExpandProperty Name"', shell=True, text=True).lower()
                 if "nvidia" in output:
                     return "NVIDIA GPU (NVENC)"
                 elif "amd" in output or "radeon" in output:
@@ -1470,7 +1470,9 @@ class VisualVideoEditor:
                 self.root.after(0, lambda: self._export_complete(False, "FFmpeg failed. The console/terminal may hold more info."))
                 
         except Exception as e:
-            self.root.after(0, lambda: self._export_complete(False, str(e)))
+            # Capture the error string immediately before the exception block cleans up 'e'
+            err_msg = str(e)
+            self.root.after(0, lambda msg=err_msg: self._export_complete(False, msg))
 
     def _export_complete(self, success, msg):
         self.root.config(cursor="")
