@@ -694,6 +694,13 @@ class VisualVideoEditor:
         self.root.after(0, lambda p=pct: self.progress_var.set(p))
         self.root.after(0, lambda p=pct, s=step_name: self.progress_lbl.config(text=f"Rendering {s} progress: {int(p)}%"))
 
+    def _fmt_time(self, seconds):
+        """Formats seconds into HH:MM:SS.mmm to completely bypass FFmpeg locale parsing bugs."""
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = seconds % 60
+        return f"{h:02d}:{m:02d}:{s:06.3f}".replace(',', '.')
+
     def _process_export(self, output_path, codec_id):
         try:
             import subprocess
@@ -703,10 +710,15 @@ class VisualVideoEditor:
             master_w = (raw_master_size[0] // 2) * 2
             master_h = (raw_master_size[1] // 2) * 2
             fps = self.clips[0].video.fps
-            max_duration = max((c.timeline_pos + c.duration for c in self.clips))
+            
+            # --- BUG FIX: Remove leading blank space ---
+            # Find the true start time in case the user left empty space at the beginning
+            min_pos = min(c.timeline_pos for c in self.clips)
+            max_duration = max((c.timeline_pos + c.duration for c in self.clips)) - min_pos
 
-            bg_v = ffmpeg.input(f'color=c=black:s={master_w}x{master_h}:r={fps}', f='lavfi', t=max_duration)
-            bg_a = ffmpeg.input('anullsrc=channel_layout=stereo:sample_rate=44100', f='lavfi', t=max_duration)
+            # Remove 't' from lavfi inputs; infinite streams prevent EOF leaks. Output '-t' handles the cutoff.
+            bg_v = ffmpeg.input(f'color=c=black:s={master_w}x{master_h}:r={fps}', f='lavfi')
+            bg_a = ffmpeg.input('anullsrc=channel_layout=stereo:sample_rate=44100', f='lavfi')
 
             overlays = bg_v
             audios = [bg_a]
@@ -717,18 +729,21 @@ class VisualVideoEditor:
             for c in sorted_clips:
                 in_file = ffmpeg.input(c.filepath)
                 
-                v = in_file.video.filter('trim', start=c.trim_start, end=c.trim_end)
+                # Shift position to remove the leading empty space
+                shifted_pos = c.timeline_pos - min_pos
+                shifted_pos_ms = int(shifted_pos * 1000) # Use integer math to prevent decimal issues
+                
+                v = in_file.video.filter('trim', start=self._fmt_time(c.trim_start), end=self._fmt_time(c.trim_end))
                 v = v.filter('setpts', 'PTS-STARTPTS')
                 v = v.filter('scale', master_w, master_h)
-                v = v.filter('setpts', f'PTS-STARTPTS+{c.timeline_pos}/TB')
+                v = v.filter('setpts', f'PTS-STARTPTS+({shifted_pos_ms}/1000)/TB')
                 
                 overlays = ffmpeg.overlay(overlays, v, eof_action='pass')
 
                 if not c.is_muted and c.video.audio is not None:
-                    a = in_file.audio.filter('atrim', start=c.trim_start, end=c.trim_end)
+                    a = in_file.audio.filter('atrim', start=self._fmt_time(c.trim_start), end=self._fmt_time(c.trim_end))
                     a = a.filter('asetpts', 'PTS-STARTPTS')
-                    delay_ms = int(c.timeline_pos * 1000)
-                    a = a.filter('adelay', f'{delay_ms}|{delay_ms}')
+                    a = a.filter('adelay', f'{shifted_pos_ms}|{shifted_pos_ms}')
                     audios.append(a)
 
             if len(audios) > 1:
@@ -739,7 +754,8 @@ class VisualVideoEditor:
             output_kwargs = {
                 'vcodec': codec_id,
                 'acodec': 'aac',
-                'r': fps
+                'r': fps,
+                't': self._fmt_time(max_duration)  # Force explicit HH:MM:SS format to bypass locale bugs
             }
             
             if codec_id == 'libx264':
