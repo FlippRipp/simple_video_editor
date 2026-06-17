@@ -1,5 +1,9 @@
 @echo off
 title Visual Video Editor
+
+:: Switch working directory to where this batch file is located to prevent VENV bleeding
+cd /d "%~dp0"
+
 echo ========================================================
 echo               Visual Video Editor Launcher
 echo ========================================================
