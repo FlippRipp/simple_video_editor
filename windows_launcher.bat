@@ -30,13 +30,13 @@ if not exist venv\Scripts\python.exe (
 )
 
 :: 3. Install required packages (runs quietly unless there is an error)
-echo [INFO] Checking and installing required packages (moviepy, Pillow, tkinterdnd2, proglog, ffmpeg-python, imageio-ffmpeg)...
-venv\Scripts\pip install moviepy Pillow tkinterdnd2 proglog ffmpeg-python imageio-ffmpeg --disable-pip-version-check --quiet
+echo [INFO] Checking and installing required packages (moviepy, Pillow, tkinterdnd2, ffmpeg-python, imageio-ffmpeg, customtkinter, sounddevice, numpy)...
+venv\Scripts\pip install moviepy Pillow tkinterdnd2 ffmpeg-python imageio-ffmpeg customtkinter sounddevice numpy --disable-pip-version-check --quiet
 
-:: 4. Run the Python application
+:: 4. Run the Python application and pass any command line arguments
 echo [INFO] Starting the Video Editor...
 echo.
-venv\Scripts\python visual_video_editor.py
+venv\Scripts\python visual_video_editor.py %*
 
 :: 5. Keep the window open ONLY if the app crashes so the user can read the error
 if %errorlevel% neq 0 (
