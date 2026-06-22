@@ -21,6 +21,22 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+:: 1.5 Check if tkinter was included in the Python installation
+python -c "import tkinter" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] The 'tkinter' interface module is missing from your Python installation!
+    echo.
+    echo This usually happens if you unchecked "tcl/tk and IDLE" when installing Python.
+    echo.
+    echo HOW TO FIX:
+    echo 1. Open your Windows Settings -^> Apps -^> Installed Apps.
+    echo 2. Find Python, click the 3 dots, and select "Modify".
+    echo 3. Check the box for "tcl/tk and IDLE" and complete the installation.
+    echo.
+    pause
+    exit /b
+)
+
 :: 2. Check for the virtual environment and create it if missing
 if not exist venv\Scripts\python.exe (
     echo [INFO] First time setup detected. Creating an isolated Python environment...
@@ -34,8 +50,8 @@ if not exist venv\Scripts\python.exe (
 )
 
 :: 3. Install required packages (runs quietly unless there is an error)
-echo [INFO] Checking and installing required packages (moviepy, Pillow, tkinterdnd2, tkinter, ffmpeg-python, imageio-ffmpeg, customtkinter, sounddevice, numpy)...
-venv\Scripts\pip install moviepy Pillow tkinterdnd2 tkinter ffmpeg-python imageio-ffmpeg customtkinter sounddevice numpy --disable-pip-version-check --quiet
+echo [INFO] Checking and installing required packages (moviepy, Pillow, tkinterdnd2, ffmpeg-python, imageio-ffmpeg, customtkinter, sounddevice, numpy)...
+venv\Scripts\pip install moviepy Pillow tkinterdnd2 ffmpeg-python imageio-ffmpeg customtkinter sounddevice numpy --disable-pip-version-check --quiet
 
 :: 4. Run the Python application and pass any command line arguments
 echo [INFO] Starting the Video Editor...
