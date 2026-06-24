@@ -21,6 +21,19 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
+:: 1.2 Check Python version (Must be 3.8 or higher)
+python -c "import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo [ERROR] Your Python version is too old!
+    echo.
+    echo The video editor requires Python 3.8 or newer to run.
+    echo Please uninstall your current Python and download the latest version
+    echo from https://www.python.org/downloads/
+    echo.
+    pause
+    exit /b
+)
+
 :: 1.5 Check if tkinter was included in the Python installation
 python -c "import tkinter" >nul 2>&1
 if %errorlevel% neq 0 (
